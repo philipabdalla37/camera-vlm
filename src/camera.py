@@ -6,7 +6,6 @@ from tkinter import ttk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 from ImageProcessing import *
-from PyTesseract import *
 from Teachable import *
 from GPT4o import *
 
@@ -81,22 +80,10 @@ def runImageProcessing(image):
     ROI(image)
     ProcessImage(ROI_IMAGE)
 
-    #PyTesseract selected
-    if curMethod == method["OCR"]:
-        output = runPyTesseract(PROCESSED_IMAGE)
-        messagebox.showinfo("Result", output)
-    
     #Teachable Machine selected
-    elif curMethod == method["CNN"]:
+    if curMethod == method["CNN"]:
         output = TeachableMachine(PROCESSED_IMAGE)
         messagebox.showinfo("Result", output)
-
-    #GPT-4o selected
-    elif curMethod == method["VLM"]:
-        response = SendToGpt(PROCESSED_IMAGE)
-        messagebox.showinfo("GPT-4o Response", response)
-
-
 
 #Adds a Button that takes screenshot
 screenshotButton = tk.Button(root, text="Capture Frame", command=onCaptureFrame)
