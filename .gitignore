@@ -1,0 +1,7 @@
+.env
+images/
+myenv/
+src/__pycache__/
+tests/
+*.pyc
+*.jpg
