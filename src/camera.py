@@ -7,7 +7,9 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 from ImageProcessing import *
 from Teachable import *
-from GPT4o import *
+from picamera2 import Picamera2, Preview
+
+#from GPT4o import *
 
 #Different methods for die recognition
 method = {
@@ -24,9 +26,13 @@ isPaused = False
 
 curFrame = None
 i = 1
-
+DISPLAY_SIZE = (640, 360)
+DISPLAY_SCALE = 0.5
 # Initialize OpenCV capture
-cap = cv2.VideoCapture(0)           #1 to detect Camo Camera for Iphone
+cap = Picamera2()
+cap.configure(cap.create_preview_configuration(main={"size": (1920, 1080)}))
+
+cap.start()
 
 # Tkinter window
 root = tk.Tk()
@@ -39,16 +45,15 @@ videoLabel.pack()
 # Function to show camera frame
 def showFrame():
     global isPaused, curFrame
-    ret, frame = cap.read()
-    if ret and isPaused == False:
+
+    if isPaused == False:
+        frame = cap.capture_array()
 
         #Get the most recent frame
-        curFrame = frame.copy()
-        
-        # Convert frame to RGB for Tkinter
-        frame = cv2.resize(frame, (640, 480))
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        img = Image.fromarray(frame_rgb)
+        curFrame = frame
+
+        display = cv2.resize(frame, DISPLAY_SIZE, interpolation=cv2.INTER_AREA)
+        img = Image.fromarray(display)
         imgtk = ImageTk.PhotoImage(image=img)
 
         #Update the label with this image
@@ -70,9 +75,15 @@ def onCaptureFrame():
     global isPaused, curFrame
     if curFrame is not None:
         resumeButton.pack(pady=10)  # Shows the resume button
-        cv2.imwrite(ORIGINAL_IMAGE, curFrame)
-        print("Image saved as snapshot.jpg")
         isPaused = True
+
+        #Modify format from RGB -> BGR, for cv2 to process the image
+        bgr = cv2.cvtColor(curFrame, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(ORIGINAL_IMAGE, bgr)
+
+        # cv2.imwrite(ORIGINAL_IMAGE, curFrame)
+        print("Image saved as snapshot.jpg")
+        
         runImageProcessing(ORIGINAL_IMAGE)
 
 # Function to process the captured image
@@ -98,7 +109,7 @@ showFrame()
 root.mainloop()
 
 # Cleanup after window is closed
-cap.release()
+cap.stop()
 cv2.destroyAllWindows()
 
 

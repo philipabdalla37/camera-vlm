@@ -23,7 +23,7 @@
 set -e
 
 echo "Creating virtual environment..."
-python3 -m venv myenv
+python3 -m venv myenv --system-site-packages
 
 echo "Activating virtual environment..."
 source myenv/bin/activate
