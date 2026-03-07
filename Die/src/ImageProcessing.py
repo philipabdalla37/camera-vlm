@@ -1,6 +1,6 @@
 import cv2
 import numpy as np 
-from Constants import *
+from .Constants import *
 
 def ROI(image):
     # Read original image

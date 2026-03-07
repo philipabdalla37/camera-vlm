@@ -1,13 +1,19 @@
 from tensorflow.keras.models import load_model
 from PIL import Image, ImageOps  # Install pillow instead of PIL
 import numpy as np
-from Constants import *
+from pathlib import Path
+from .Constants import *
 
 # Disable scientific notation for clarity
 np.set_printoptions(suppress=True)
 
 # Load the model
-model = load_model("CurrentModel/keras_model.h5", compile=False)
+BASE_DIR = Path(__file__).resolve().parent      # camera_vlm/src
+CAMERA_VLM_DIR = BASE_DIR.parent                # camera_vlm
+
+MODEL_PATH = CAMERA_VLM_DIR / "CurrentModel" / "keras_model.h5"
+
+model = load_model(MODEL_PATH, compile=False)
 
 def TeachableMachine(img=PROCESSED_IMAGE):
     # Disable scientific notation for clarity
