@@ -15,6 +15,7 @@ MOVEMENT_THRESHOLD = 6.0      # Adjust if needed
 STILLNESS_REQUIRED = 10       # Frames of stillness before capture
 CONTOUR_AREA_THRESHOLD = 1500
 AUTO_CAPTURE = True
+DEBUG = True
 
 class DieDetection:
     
@@ -49,18 +50,19 @@ class DieDetection:
         self.videoLabel = ttk.Label(self.root)
         self.videoLabel.pack()
 
-        self.screenshotButton = tk.Button(
-            self.root,
-            text="Capture Frame",
-            command=self.onCaptureFrame
-        )
-        self.screenshotButton.pack(pady=10)
+        if DEBUG:
+            self.screenshotButton = tk.Button(
+                self.root,
+                text="Capture Frame",
+                command=self.onCaptureFrame
+            )
+            self.screenshotButton.pack(pady=10)
 
-        self.resumeButton = tk.Button(
-            self.root,
-            text="Resume Camera",
-            command=self.onResume
-        )
+            self.resumeButton = tk.Button(
+                self.root,
+                text="Resume Camera",
+                command=self.onResume
+            )
 
     # Detects if a die is present using colour segmentation.
     # Assumes high-contrast die (e.g., dark die on light surface).
@@ -92,14 +94,14 @@ class DieDetection:
 
         x, y, w, h = cv2.boundingRect(largest)
         
-        # Draw bounding box LIVE
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        if DEBUG:
+            # Draw bounding box LIVE
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
         
         return True
 
     # Function to show camera frame
     def showFrame(self):
-
         if not self.isPaused:
             frame = self.cap.capture_array()
 
@@ -108,38 +110,44 @@ class DieDetection:
 
             # Die detection: See if the die is visible in the frame, and mark it as detected
             if self.dieInFrame(frame):
-                print("1. Die is in the frame")
+                if DEBUG:
+                    print("1. Die is in the frame")
 
                 if not self.dieDetected:
-                    print("2. Die detected changed to true")
                     self.dieDetected = True
                     self.prevGray = None
                     self.stillFrames = 0
+                    if DEBUG:
+                        print("2. Die detected changed to true")
             else:
-                print("3. Die detected changed to false")
                 self.dieDetected = False
+                if DEBUG:
+                    print("3. Die detected changed to false")
 
             # Motion detection: If the die is present, check motion to see when it stops
             if self.dieDetected:
-                print("4. Die detected true, so now the magic happens")
                 gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+                if DEBUG:
+                    print("4. Die detected true, so now the magic happens")
 
                 if self.prevGray is not None:
                     #Compare the difference between the previous frame and the new one.
                     diff = cv2.absdiff(gray, self.prevGray)
+                    if DEBUG:
+                        print("5. The difference between the last two frames is: ", diff)
 
-                    print("5. The difference between the last two frames is: ", diff)
-                    
                     #If movement is close to 0, it means the image is almost identical,
                     #so the die is not moving anymore.
                     movement = np.sum(diff) / diff.size
 
+                if DEBUG:
                     print("6. The movement is: ", movement)
 
                     #If this movement is less than the required one, increment the still flag. 
                     #This will allow the program to see how many consecutive frames the die has been still.
                     if movement < MOVEMENT_THRESHOLD:
-                        print("7. Movement is less than threshold, thus add stillFrame = ", self.stillFrames)
+                        if DEBUG:
+                            print("7. Movement is less than threshold, thus add stillFrame = ", self.stillFrames)
                         self.stillFrames += 1
                     else:
                         self.stillFrames = 0
@@ -174,6 +182,7 @@ class DieDetection:
     # Function to capture and save frame
     def onCaptureFrame(self):
         if self.curFrame is not None:
+
             self.resumeButton.pack(pady=10)  # Shows the resume button
             self.isPaused = True
 

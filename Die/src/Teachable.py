@@ -12,6 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent      # camera_vlm/src
 CAMERA_VLM_DIR = BASE_DIR.parent                # camera_vlm
 
 MODEL_PATH = CAMERA_VLM_DIR / "CurrentModel" / "keras_model.h5"
+LABEL_PATH = CAMERA_VLM_DIR / "CurrentModel" / "labels.txt"
 
 model = load_model(MODEL_PATH, compile=False)
 
@@ -20,7 +21,7 @@ def TeachableMachine(img=PROCESSED_IMAGE):
     np.set_printoptions(suppress=True)
 
     # Load the labels
-    class_names = open("CurrentModel/labels.txt", "r").readlines()
+    class_names = open(LABEL_PATH, "r").readlines()
 
     # Create the array of the right shape to feed into the keras model
     # The 'length' or number of images you can put into the array is
@@ -53,4 +54,4 @@ def TeachableMachine(img=PROCESSED_IMAGE):
     print("Class:", class_name[2:], end="")
     print("Confidence Score:", confidence_score)
 
-    return (f"Class: {class_name[2:]} \n Confidence Score: {confidence_score}")
+    return ({class_name[2:]})
