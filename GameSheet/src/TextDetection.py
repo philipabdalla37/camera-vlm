@@ -6,9 +6,11 @@ import numpy as np
 from pathlib import Path
 
 from .Constants import *
-from .ImageProcessor import ImageProcessor
+from .SheetImageProcessor import SheetImageProcessor
 from .DigitRecognizer import DigitRecognizer
-# from picamera2 import Picamera2
+
+if not DEBUG_CAMO:
+    from picamera2 import Picamera2
 
 class TextDetection:
 
@@ -19,7 +21,7 @@ class TextDetection:
                 directory.mkdir(parents=True, exist_ok=True)
 
         # Initialize processors
-        self.processor = ImageProcessor()
+        self.processor = SheetImageProcessor()
 
         #Get the CNN Model
         self.digitRecognizer = DigitRecognizer(DIGIT_H5)

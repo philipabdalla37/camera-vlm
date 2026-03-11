@@ -5,7 +5,7 @@ import numpy as np
 import os
 from .Constants import *
 
-class ImageProcessor:
+class SheetImageProcessor:
 
     # Saves the given image to the specified directory with the given filename.
     def SaveImage(self, directory, filename, image):

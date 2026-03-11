@@ -1,57 +1,49 @@
 from tensorflow.keras.models import load_model
-from PIL import Image, ImageOps  # Install pillow instead of PIL
+from PIL import Image, ImageOps
 import numpy as np
-from pathlib import Path
 from .Constants import *
 
-# Disable scientific notation for clarity
+# Disable scientific notation
 np.set_printoptions(suppress=True)
 
-# Load the model
-BASE_DIR = Path(__file__).resolve().parent      # camera_vlm/src
-CAMERA_VLM_DIR = BASE_DIR.parent                # camera_vlm
+class Teachable:
 
-MODEL_PATH = CAMERA_VLM_DIR / "CurrentModel" / "keras_model.h5"
-LABEL_PATH = CAMERA_VLM_DIR / "CurrentModel" / "labels.txt"
+    def __init__(self):
+        # Load model once
+        self.model = load_model(KERAS_H5, compile=False)
 
-model = load_model(MODEL_PATH, compile=False)
+        # Load class labels
+        with open(LABEL, "r") as f:
+            self.class_names = [line.strip() for line in f.readlines()]
 
-def TeachableMachine(img=PROCESSED_IMAGE):
-    # Disable scientific notation for clarity
-    np.set_printoptions(suppress=True)
+    def TeachableMachine(self, img):
+        # Create the array of the right shape to feed into the keras model
+        # The 'length' or number of images you can put into the array is
+        # determined by the first position in the shape tuple, in this case 1
+        
+        # Prepare input array
+        data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
 
-    # Load the labels
-    class_names = open(LABEL_PATH, "r").readlines()
+        # Replace this with the path to your image
+        image = Image.fromarray(img).convert("RGB")
 
-    # Create the array of the right shape to feed into the keras model
-    # The 'length' or number of images you can put into the array is
-    # determined by the first position in the shape tuple, in this case 1
-    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+        # resizing the image to be at least 224x224 and then cropping from the center
+        image = ImageOps.fit(image, (224, 224), Image.Resampling.LANCZOS)
 
-    # Replace this with the path to your image
-    image = Image.open(img).convert("RGB")
+        # turn the image into a numpy array
+        image_array = np.asarray(image)
 
-    # resizing the image to be at least 224x224 and then cropping from the center
-    size = (224, 224)
-    image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
+        # Normalize the image
+        normalized = (image_array.astype(np.float32) / 127.5) - 1
 
-    # turn the image into a numpy array
-    image_array = np.asarray(image)
+        # Load the image into the array
+        data[0] = normalized
 
-    # Normalize the image
-    normalized_image_array = (image_array.astype(np.float32) / 127.5) - 1
+        # Predicts the model
+        prediction = self.model.predict(data, verbose=0)
 
-    # Load the image into the array
-    data[0] = normalized_image_array
+        index = np.argmax(prediction)
+        class_name = self.class_names[index]
+        confidence_score = prediction[0][index]
 
-    # Predicts the model
-    prediction = model.predict(data)
-    index = np.argmax(prediction)
-    class_name = class_names[index]
-    confidence_score = prediction[0][index]
-
-    # Print prediction and confidence score
-    print("Class:", class_name[2:], end="")
-    print("Confidence Score:", confidence_score)
-
-    return ({class_name[2:]})
+        return class_name[2:], confidence_score

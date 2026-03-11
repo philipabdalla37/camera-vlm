@@ -7,6 +7,7 @@ from pathlib import Path
 # Define directories for saving images
 BASE_DIR = Path(__file__).resolve().parents[1]
 JSON_DIR = Path(__file__).resolve().parents[3]
+
 #CNN Models
 DIGIT_H5 = BASE_DIR / "models" / "digit_model.h5"
 # CHAR_H5 = BASE_DIR / "models" / "char_model.h5"
