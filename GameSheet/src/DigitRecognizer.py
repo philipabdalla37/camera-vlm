@@ -14,5 +14,6 @@ class DigitRecognizer:
         digitImg = digitImg.reshape(1, 28, 28, 1)
 
         prediction = self.model.predict(digitImg, verbose=0)
+        print("Confidence:", np.max(prediction))
 
         return np.argmax(prediction)

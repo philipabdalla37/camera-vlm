@@ -33,7 +33,7 @@ model.compile(
 model.summary()
 
 # Train
-model.fit(x_train, y_train, epochs=5, validation_split=0.1)
+model.fit(x_train, y_train, epochs=30, validation_split=0.1)
 
 # Evaluate
 test_loss, test_acc = model.evaluate(x_test, y_test)

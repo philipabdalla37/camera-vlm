@@ -1,18 +1,22 @@
 import cv2
+import os
+import time
+import json
 import numpy as np
 from pathlib import Path
-from Constants import *
-from ImageProcessor import ImageProcessor
-from DigitRecognizer import DigitRecognizer
+
+from .Constants import *
+from .ImageProcessor import ImageProcessor
+from .DigitRecognizer import DigitRecognizer
 # from picamera2 import Picamera2
 
 class TextDetection:
 
     def __init__(self):
-
         # Ensure directories exist
-        for directory in [PHOTO_DIR, CROPPED_DIR, SECTIONS_DIR, ROI_DIR, PROCESSED_DIR, MARKERS_DIR]:
-            directory.mkdir(parents=True, exist_ok=True)
+        if DEBUG:
+            for directory in ALL_DIRS:
+                directory.mkdir(parents=True, exist_ok=True)
 
         # Initialize processors
         self.processor = ImageProcessor()
@@ -101,6 +105,7 @@ class TextDetection:
     # Detects ArUco markers in the frame and returns their centers and detection data.
     def DetectMarkers(self, aruco_type=cv2.aruco.DICT_6X6_250):
 
+        print(JSON_DIR)
         #Loads trained CNN model for digit recognition
         digitRecognizer = DigitRecognizer("camera-vlm/GameSheet/models/digit_model.h5")
         
@@ -119,10 +124,24 @@ class TextDetection:
         prevGray = None
         stillFrames = 0
 
+        #Timer to check for no sheet detection
+        startTime = time.time()
+        
         # Main loop to process video frames
         while True:
-            # Capture frame-by-frame
+            # Stop if no sheet detected within TIMEOUT
+            if time.time() - startTime > TIMEOUT:
+                if DEBUG:
+                    print("Timeout: No sheet detected within 15 seconds.")
+    
+                return False
 
+            if DEBUG:
+                elapsed = time.time() - startTime
+                remaining = TIMEOUT - elapsed
+                print(f"Time remaining: {remaining:.1f} seconds")
+
+            # Capture frame-by-frame
             if DEBUG_CAMO:
                 #Use video capture to get the frame
                 ret, frame = self.cap.read()
@@ -151,6 +170,7 @@ class TextDetection:
             if marker_ids is not None:
                 #Convert to 1D array for easier processing
                 marker_ids = marker_ids.flatten()
+                startTime = time.time()        # reset timer
                 
                 if DEBUG:
                     print("Detected IDs:", marker_ids)
@@ -250,6 +270,8 @@ class TextDetection:
                     if DEBUG:
                         self.processor.SaveImage(CROPPED_DIR, "cropped_image", croppedImage)
 
+                    stats = {}
+                    textFields = {}
                     for section in SKILL_SECTIONS:
 
                         #2. Crop the sheet further to separate the sections, to then perform image processing and digit segmentation on each section.
@@ -272,10 +294,29 @@ class TextDetection:
                                 predicted = digitRecognizer.PredictDigit(digitImg)
                                 numberStr += str(predicted)
 
+                            stats[section[1]] = numberStr
                             if DEBUG:
                                 print(f"{section[0]} value:", numberStr)
-        
-                        #4. Create a JSON file with the results
+
+                        #3b. Get the characters from the section
+                        elif section[0] == 1:
+                            
+                            #TEST FOR NOW
+                            textFields[section[1]] = "Miguel the Wizard of Oz"
+                            # if DEBUG:
+                            #     print(f"{section[0]} value:", numberStr)
+
+                    #4. Create a JSON file with the results
+                    playerData = {
+                        **textFields,
+                        **stats
+                    }
+
+                    #JSON File
+                    self.SavePlayerJSON(playerData)
+
+                    #Get another player by returning true to the main
+                    return True
 
             #When the orientation is not correct, reset the stillness and orientation flags.
             else:
@@ -301,13 +342,38 @@ class TextDetection:
 
         cv2.destroyAllWindows()
 
-# -----------------------------
-# Main
-# -----------------------------
-if __name__ == "__main__":
-    text = TextDetection()
-    text.DetectMarkers()
+    #Create a JSON file based on the player's data
+    def SavePlayerJSON(self, playerData, filePath=PLAYER_FILE):
+        
+        # Load existing data if file exists
+        if os.path.exists(filePath):
+            with open(filePath, "r") as f:
+                data = json.load(f)
+        else:
+            data = {}
 
+        # Determine next player number
+        playerNumber = len(data) + 1
+        playerKey = f"Player{playerNumber}"
+
+        # Add new player
+        data[playerKey] = playerData
+
+        # Write updated JSON
+        with open(filePath, "w") as f:
+            json.dump(data, f, indent=2)
+
+    #Deletes the JSON player file
+    def DeletePlayerJSON(self, filePath=PLAYER_FILE):
+        if filePath.exists():
+            filePath.unlink()
+            if DEBUG:
+                print(f"Deleted JSON file: {filePath}")
+        else:
+            if DEBUG:
+                print("JSON file does not exist.")
+
+# print(isMorePlayers)
     # # Generate padded markers
     # ARUCO_MARKERS = 4
     # for marker_id in range(ARUCO_MARKERS):
