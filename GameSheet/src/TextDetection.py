@@ -26,24 +26,8 @@ class TextDetection:
         #Get the CNN Model
         self.digitRecognizer = DigitRecognizer(DIGIT_H5)
 
-        if DEBUG_CAMO:
-            # Initialize video capture
-            self.cap = cv2.VideoCapture(0)
-
-            # Force higher resolution
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
-
-        else:
-            # Initialize PiCamera2
-            self.cap = Picamera2()
-            self.cap.configure(
-                self.cap.create_preview_configuration(
-                    main={"size": (1920, 1080)}
-                )
-            )
-            self.cap.start()
-
+        # Camera will be initialized later
+        self.cap = None
 
     # Generates a padded ArUco marker for the given ID and saves it as a PNG file.
     def GenerateArucoMarkers(self, markerId, aruco_type=cv2.aruco.DICT_6X6_250, marker_size=800, border_bits=1):
@@ -107,7 +91,18 @@ class TextDetection:
     # Detects ArUco markers in the frame and returns their centers and detection data.
     def DetectMarkers(self, aruco_type=cv2.aruco.DICT_6X6_250):
 
-        print(JSON_DIR)
+        # Initialize video capture
+        if DEBUG_CAMO:
+            self.cap = cv2.VideoCapture(0)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
+
+        # Initialize PiCamera2 capture
+        else:
+            self.cap = Picamera2()
+            self.cap.configure(self.cap.create_preview_configuration(main={"size": (1920, 1080)}))
+            self.cap.start()
+
         #Loads trained CNN model for digit recognition
         digitRecognizer = DigitRecognizer("camera-vlm/GameSheet/models/digit_model.h5")
         
@@ -329,10 +324,12 @@ class TextDetection:
                 if DEBUG:
                     cv2.putText(frame, "Incorrect Orientation", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 
-            cv2.imshow("Smart Document Capture", frame)
+            if DEBUG:
+                display = cv2.resize(frame, DISPLAY_SIZE)
+                cv2.imshow("Smart Document Capture", display)
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
         
         if DEBUG_CAMO:
             #Stop video capture.
@@ -341,6 +338,7 @@ class TextDetection:
         else:
             #Stop PiCamera
             self.cap.stop()
+            self.cap.close()
 
         cv2.destroyAllWindows()
 

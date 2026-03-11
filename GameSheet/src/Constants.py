@@ -40,10 +40,11 @@ ALL_DIRS = [
 ]
 
 #Debugging flag
-DEBUG = True
+DEBUG = False
 DEBUG_CAMO = True
 
 #Camo
+DISPLAY_SIZE = (640, 360)
 MOVEMENT_THRESHOLD = 2.0      # Adjust if needed
 STILLNESS_REQUIRED = 10       # Frames of stillness before capture
 ANGLE_TOLERANCE = 1.0        # Degrees of tolerance for orientation check

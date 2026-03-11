@@ -4,11 +4,10 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 IMAGES_DIR = BASE_DIR / "images" 
 
-
 #Files
-ORIGINAL_IMAGE = "die.jpg"
-ROI_IMAGE = "roi_die.jpg"
-PROCESSED_IMAGE = "processed_die.jpg"
+ORIGINAL_IMAGE = "die"
+ROI_IMAGE = "roi_die"
+PROCESSED_IMAGE = "processed_die"
 KERAS_H5 = BASE_DIR / "models" / "keras_model.h5"
 LABEL = BASE_DIR / "models" / "labels.txt"
 
