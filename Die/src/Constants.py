@@ -13,11 +13,10 @@ LABEL = BASE_DIR / "models" / "labels.txt"
 
 #Debugging flag
 DEBUG = True
-DEBUG_CAMO = True
+DEBUG_CAMO = False
 
 #Camo
 DISPLAY_SIZE = (640, 360)
 MOVEMENT_THRESHOLD = 6.0      # Adjust if needed
 STILLNESS_REQUIRED = 10       # Frames of stillness before capture
 CONTOUR_AREA_THRESHOLD = 1500
-AUTO_CAPTURE = True

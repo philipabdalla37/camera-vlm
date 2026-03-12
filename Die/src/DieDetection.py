@@ -200,9 +200,20 @@ class DieDetection:
                 if not self.ShowDebugFrame(frame):
                     break
 
+    #Reset values
+    def ResetState(self):
+        self.curFrame = None
+        self.prevGray = None
+        self.stillFrames = 0
+        self.dieDetected = False
+        self.dieResult = None
+
     # Main Execution
     def RunDie(self):
 
+        # Reset variables before running again
+        self.ResetState()   
+        
         # Initialize video capture
         if DEBUG_CAMO:
             # Force higher resolution

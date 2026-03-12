@@ -131,6 +131,10 @@ class TextDetection:
                 if DEBUG:
                     print("Timeout: No sheet detected within 15 seconds.")
     
+                #Close the camera
+                self.CameraRelease()
+                
+                #No more players should be added
                 return False
 
             if DEBUG:
@@ -253,10 +257,11 @@ class TextDetection:
                 prevGray = gray
 
                 #Once we pass the stillness required, take the photo and analyze it. Reset other values
-                if stillFrames > STILLNESS_REQUIRED and AUTO_CAPTURE:
+                if stillFrames > STILLNESS_REQUIRED:
                     stillFrames = 0
 
-                    self.processor.SaveImage(PHOTO_DIR, "captured_image", frame)
+                    if DEBUG:
+                        self.processor.SaveImage(PHOTO_DIR, "captured_image", frame)
 
 ###############################################################################################################
                                         # IMAGE PROCESSING + CNN Response #
@@ -312,6 +317,9 @@ class TextDetection:
                     #JSON File
                     self.SavePlayerJSON(playerData)
 
+                    #Close the camera
+                    self.CameraRelease()
+
                     #Get another player by returning true to the main
                     return True
 
@@ -330,17 +338,18 @@ class TextDetection:
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-        
-        if DEBUG_CAMO:
-            #Stop video capture.
-            self.cap.release()
-    
-        else:
-            #Stop PiCamera
-            self.cap.stop()
-            self.cap.close()
 
-        cv2.destroyAllWindows()
+    def CameraRelease(self):
+            if DEBUG_CAMO:
+                #Stop video capture.
+                self.cap.release()
+
+            else:
+                #Stop PiCamera
+                self.cap.stop()
+                self.cap.close()
+
+            cv2.destroyAllWindows()
 
     #Create a JSON file based on the player's data
     def SavePlayerJSON(self, playerData, filePath=PLAYER_FILE):

@@ -40,15 +40,14 @@ ALL_DIRS = [
 ]
 
 #Debugging flag
-DEBUG = False
-DEBUG_CAMO = True
+DEBUG = True
+DEBUG_CAMO = False
 
 #Camo
 DISPLAY_SIZE = (640, 360)
-MOVEMENT_THRESHOLD = 2.0      # Adjust if needed
+MOVEMENT_THRESHOLD = 2.3      # Adjust if needed
 STILLNESS_REQUIRED = 10       # Frames of stillness before capture
 ANGLE_TOLERANCE = 1.0        # Degrees of tolerance for orientation check
-AUTO_CAPTURE = True
 
 #ArUco IDs
 ARUCO_MARKERS = 4

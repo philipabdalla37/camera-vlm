@@ -64,7 +64,7 @@ class SheetImageProcessor:
             x, y, w, h = cv2.boundingRect(cnt)
 
             # Filter small contours that are likely noise
-            if h > 20 and w > 5:
+            if h > 20 and w > 8:
                 boxes.append((x, y, w, h))
 
         # Sort detected digits from left to right
@@ -76,7 +76,10 @@ class SheetImageProcessor:
         for i, (x, y, w, h) in enumerate(boxes):
 
             # Crop digit region
-            digit = img[y:y+h, x:x+w]
+            # digit = img[y:y+h, x:x+w]
+
+            pad = 4
+            digit = img[max(y-pad,0):y+h+pad, max(x-pad,0):x+w+pad]
 
             # Normalize digit for CNN input
             digit = self.NormalizeDigit(digit)
@@ -106,39 +109,6 @@ class SheetImageProcessor:
         square[y_offset:y_offset+h, x_offset:x_offset+w] = digitImg
 
         # Resize to CNN input size
-        resized = cv2.resize(square, (28, 28), interpolation=cv2.INTER_AREA)
+        resized = cv2.resize(square, (28, 28), interpolation=cv2.INTER_CUBIC)
 
         return resized
-
-    # def NormalizeDigit(self, digitImg):
-
-    #     # Ensure binary
-    #     _, digitImg = cv2.threshold(digitImg, 127, 255, cv2.THRESH_BINARY)
-
-    #     # Find bounding box of digit pixels
-    #     coords = cv2.findNonZero(digitImg)
-    #     x, y, w, h = cv2.boundingRect(coords)
-    #     digit = digitImg[y:y+h, x:x+w]
-
-    #     # Resize while preserving aspect ratio
-    #     target_size = 20
-    #     h, w = digit.shape
-
-    #     if h > w:
-    #         new_h = target_size
-    #         new_w = int(w * (target_size / h))
-    #     else:
-    #         new_w = target_size
-    #         new_h = int(h * (target_size / w))
-
-    #     resized = cv2.resize(digit, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
-
-    #     # Create 28x28 canvas
-    #     canvas = np.zeros((28, 28), dtype=np.uint8)
-
-    #     y_offset = (28 - new_h) // 2
-    #     x_offset = (28 - new_w) // 2
-
-    #     canvas[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized
-
-    #     return canvas
