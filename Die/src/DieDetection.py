@@ -161,6 +161,10 @@ class DieDetection:
 #########################################################################
             # Motion detection: If the die is present, check motion to see when it stops
             if self.dieDetected:
+                if self.prevGray is None:
+                    self.prevGray = gray
+                    continue
+                
                 #Compare the difference between the previous frame and the new one.
                 diff = cv2.absdiff(gray, self.prevGray)
                 
