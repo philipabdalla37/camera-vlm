@@ -3,11 +3,12 @@ import os
 import time
 import json
 import numpy as np
+import random
 from pathlib import Path
 
 from .Constants import *
 from .SheetImageProcessor import SheetImageProcessor
-from .DigitRecognizer import DigitRecognizer
+from .OCRProcessor import OCRProcessor
 
 if not DEBUG_CAMO:
     from picamera2 import Picamera2
@@ -23,8 +24,12 @@ class TextDetection:
         # Initialize processors
         self.processor = SheetImageProcessor()
 
-        #Get the CNN Model
-        self.digitRecognizer = DigitRecognizer(DIGIT_H5)
+        #Get the OCR Processor Model
+        if DEBUG and DEBUG_CAMO:
+            self.ocr = OCRProcessor(TESSERACT_PATH)
+
+        else:
+            self.ocr = OCRProcessor()
 
         # Camera will be initialized later
         self.cap = None
@@ -103,9 +108,6 @@ class TextDetection:
             self.cap.configure(self.cap.create_preview_configuration(main={"size": (1920, 1080)}))
             self.cap.start()
 
-        #Loads trained CNN model for digit recognition
-        digitRecognizer = DigitRecognizer("camera-vlm/GameSheet/models/digit_model.h5")
-        
         # Each marker contains a 6×6 binary grid, which allows for a total of 250 unique markers in the DICT_6X6_250 dictionary.
         dictionary = cv2.aruco.getPredefinedDictionary(aruco_type)
 
@@ -272,46 +274,83 @@ class TextDetection:
                     if DEBUG:
                         self.processor.SaveImage(CROPPED_DIR, "cropped_image", croppedImage)
 
-                    stats = {}
-                    textFields = {}
-                    for section in SKILL_SECTIONS:
+                    results = {}
+                    for section in SECTIONS:
 
                         #2. Crop the sheet further to separate the sections, to then perform image processing and digit segmentation on each section.
                         croppedSection = self.extractSection(croppedImage, section)
 
-                        #3a. Get the Digit from the section
-                        if section[0] == 0:
-                            #Crop number area
-                            roi = self.processor.ROI(croppedSection, section[1])
+                        #3. Get the text from the section
+                        #Crop number area
+                        roi = self.processor.ROI(croppedSection, section[1])
                             
-                            #Perform the different Image Processing steps
-                            processed = self.processor.ProcessImage(roi, section[1])    
+                        #Perform the different Image Processing steps
+                        processed = self.processor.ProcessImage(roi, section[1])    
 
-                            #Perform image segmentation on the number
-                            number = self.processor.SegmentDigit(processed, section[1])
+                        #Use OCR to find the given text. section[0] == 0 => Number OCR; == 1 => text
+                        ocrResult = self.ocr.run(processed, section[0])
 
-                            #Detect numbers in each section using the trained CNN
-                            numberStr = ""
-                            for digitImg in number:
-                                predicted = digitRecognizer.PredictDigit(digitImg)
-                                numberStr += str(predicted)
+                        results[section[1]] = ocrResult
 
-                            stats[section[1]] = numberStr
+                        if DEBUG:
+                            print(f"{section[1]} = ", ocrResult)
+
+                    ##### SAFEGUARD: Check that all numbers are valid, and if not, assign the remaining points to the empty sections. #####
+                    emptyKeys = []
+                    totalSum = 0
+
+                    # Identify missing and sum valid values
+                    for key in SKILLS:
+                        value = results.get(key, "")
+
+                        if value == "":
                             if DEBUG:
-                                print(f"{section[0]} value:", numberStr)
+                                print(f"{key} is missing")
+                            emptyKeys.append(key)
 
-                        #3b. Get the characters from the section
-                        elif section[0] == 1:
+                        # If the value is greater than MAX_POINTS, it's likely an OCR error. Reset it and treat it as missing.
+                        elif int(value) > MAX_POINTS:
+                            if DEBUG:
+                                print(f"Error: {key} value {value} exceeds MAX_POINTS. Resetting it.")
                             
-                            #TEST FOR NOW
-                            textFields[section[1]] = "Miguel the Wizard of Oz"
-                            # if DEBUG:
-                            #     print(f"{section[0]} value:", numberStr)
+                            results[key] = ""
+                            emptyKeys.append(key)
+
+                        else:
+                            totalSum += int(value)
+
+                    # Calculate remaining points
+                    remaining = MAX_POINTS - totalSum
+
+                    # Case 1: One missing value (directly calculate it)
+                    if len(emptyKeys) == 1:
+                        results[emptyKeys[0]] = str(remaining)
+
+                        if DEBUG:
+                            print(f"Filled {emptyKeys[0]} with {remaining}")
+
+                    # Case 2: Multiple missing values (randomly choose the remaining points)
+                    elif len(emptyKeys) > 1:
+                        total_left = remaining
+
+                        # Randomly assign points to all but the last missing section
+                        for key in emptyKeys[:-1]:
+                            value = random.randint(0, total_left)
+                            results[key] = str(value)
+                            total_left -= value
+
+                            if DEBUG:
+                                print(f"Filled {key} with {value}")
+    
+                        # Last one gets the remainder
+                        results[emptyKeys[-1]] = str(total_left)
+
+                        if DEBUG:
+                            print(f"Filled {emptyKeys[-1]} with {total_left}")
 
                     #4. Create a JSON file with the results
                     playerData = {
-                        **textFields,
-                        **stats
+                        **results
                     }
 
                     #JSON File

@@ -13,7 +13,7 @@ LABEL = BASE_DIR / "models" / "labels.txt"
 
 #Debugging flag
 DEBUG = True
-DEBUG_CAMO = False
+DEBUG_CAMO = True
 
 #Camo
 DISPLAY_SIZE = (640, 360)

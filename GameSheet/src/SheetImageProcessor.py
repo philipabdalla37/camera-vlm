@@ -30,85 +30,25 @@ class SheetImageProcessor:
         return clean
 
     # Image Processing Pipeline
+
     def ProcessImage(self, img, imageName):
 
-        # 1. Grayscale
+        # 1. Ensure grayscale 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # 2. Remove salt-and-pepper noise
-        blur = cv2.medianBlur(gray, 3)
+        # 2. Light denoise (preserve edges)
+        blur = cv2.GaussianBlur(gray, (3, 3), 0)
 
-        # 3. Perform thresholding to get image with only black background and white text
-        thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 3)
+        # 3. Global threshold
+        _, thresh = cv2.threshold(
+            blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+        )
 
-        # 4. Morphological cleanup
-        kernel = np.ones((3,3), np.uint8)
-        closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
-        opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel, iterations=1)
+        # 4. Light morphological cleanup to avoid over-thickening
+        kernel = np.ones((2, 2), np.uint8)
+        cleaned = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
 
         if DEBUG:
-            self.SaveImage(PROCESSED_DIR, imageName, opened)
+            self.SaveImage(PROCESSED_DIR, imageName, cleaned)
 
-        return opened
-
-    # Segments individual digits from a processed binary image and returns them as normalized images.
-    def SegmentDigit(self, img, imageName):
-
-        # Detect contours representing potential digits
-        contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        boxes = []
-
-        #Get the contours that are most likely the digits
-        for cnt in contours:
-            x, y, w, h = cv2.boundingRect(cnt)
-
-            # Filter small contours that are likely noise
-            if h > 20 and w > 8:
-                boxes.append((x, y, w, h))
-
-        # Sort detected digits from left to right
-        boxes = sorted(boxes, key=lambda b: b[0])
-
-        #Important for double digit cases
-        digitImages = []
-
-        for i, (x, y, w, h) in enumerate(boxes):
-
-            # Crop digit region
-            # digit = img[y:y+h, x:x+w]
-
-            pad = 4
-            digit = img[max(y-pad,0):y+h+pad, max(x-pad,0):x+w+pad]
-
-            # Normalize digit for CNN input
-            digit = self.NormalizeDigit(digit)
-            digitImages.append(digit)
-
-            # Save debug image
-            if DEBUG:
-                self.SaveImage(DEBUG_DIR, f"{imageName}_digit_{i}", digit)
-
-        return digitImages
-
-    # Converts a digit image to a centered 28x28 square suitable for CNN input.
-    def NormalizeDigit(self, digitImg):
-
-        # Ensure binary image
-        _, digitImg = cv2.threshold(digitImg, 127, 255, cv2.THRESH_BINARY)
-
-        h, w = digitImg.shape
-
-        # Create square canvas based on largest dimension
-        size = max(h, w)
-        square = np.zeros((size, size), dtype=np.uint8)
-
-        # Center digit inside the square
-        y_offset = (size - h) // 2
-        x_offset = (size - w) // 2
-        square[y_offset:y_offset+h, x_offset:x_offset+w] = digitImg
-
-        # Resize to CNN input size
-        resized = cv2.resize(square, (28, 28), interpolation=cv2.INTER_CUBIC)
-
-        return resized
+        return cleaned
